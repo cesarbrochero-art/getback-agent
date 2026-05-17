@@ -12,12 +12,14 @@ PROJECT_ID = "getback-dev-496214"
 LOCATION = "us-central1"
 AGENT_ID = "8851328638096769024"
 
-# ---- INICIALIZAR VERTEX AI ----
+# ---- CREDENCIALES GCP ----
 service_account_info = dict(st.secrets["gcp_service_account"])
 credentials = google.oauth2.service_account.Credentials.from_service_account_info(
     service_account_info,
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
 )
+
+# ---- INICIALIZAR VERTEX AI ----
 vertexai.init(project=PROJECT_ID, location=LOCATION, credentials=credentials)
 
 # ---- FUNCIÓN PARA LLAMAR AL AGENTE ----
@@ -114,8 +116,7 @@ if submitted:
     with st.spinner("Analyzing similar cases..."):
         try:
             agent = reasoning_engines.ReasoningEngine(
-                f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ID}",
-                credentials=credentials
+                f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ID}"
             )
             session = agent.create_session(user_id="therapist")
             st.session_state.session_id = session["id"]
