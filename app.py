@@ -4,6 +4,7 @@ from vertexai.preview import reasoning_engines
 import requests
 import google.auth
 import google.auth.transport.requests
+import google.oauth2.service_account
 import json
 
 # ---- CONFIGURACIÓN ----
@@ -12,15 +13,21 @@ LOCATION = "us-central1"
 AGENT_ID = "8851328638096769024"
 
 # ---- INICIALIZAR VERTEX AI ----
-vertexai.init(project=PROJECT_ID, location=LOCATION)
+service_account_info = dict(st.secrets["gcp_service_account"])
+credentials = google.oauth2.service_account.Credentials.from_service_account_info(
+    service_account_info,
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+vertexai.init(project=PROJECT_ID, location=LOCATION, credentials=credentials)
 
 # ---- FUNCIÓN PARA LLAMAR AL AGENTE ----
 def call_agent(prompt, session_id):
-    credentials, _ = google.auth.default(
+    credentials_refreshed = google.oauth2.service_account.Credentials.from_service_account_info(
+        service_account_info,
         scopes=["https://www.googleapis.com/auth/cloud-platform"]
     )
-    credentials.refresh(google.auth.transport.requests.Request())
-    token = credentials.token
+    credentials_refreshed.refresh(google.auth.transport.requests.Request())
+    token = credentials_refreshed.token
 
     url = f"https://{LOCATION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ID}:streamQuery"
 
@@ -51,7 +58,6 @@ def call_agent(prompt, session_id):
         except:
             continue
 
-    # Si no hay Patient Profile Assessment, buscar cualquier texto
     if not full_text:
         for line in response.text.strip().split("\n"):
             try:
@@ -108,7 +114,8 @@ if submitted:
     with st.spinner("Analyzing similar cases..."):
         try:
             agent = reasoning_engines.ReasoningEngine(
-                f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ID}"
+                f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ID}",
+                credentials=credentials
             )
             session = agent.create_session(user_id="therapist")
             st.session_state.session_id = session["id"]
@@ -137,7 +144,6 @@ if st.session_state.recommendation_done:
     st.markdown("---")
     st.subheader("Treatment Recommendation")
     
-    # Mostrar historial de mensajes
     for message in st.session_state.messages:
         if message["role"] == "assistant":
             with st.chat_message("assistant", avatar="🏥"):
@@ -146,7 +152,6 @@ if st.session_state.recommendation_done:
             with st.chat_message("user", avatar="👤"):
                 st.markdown(message["content"])
 
-    # ---- CHAT DE SEGUIMIENTO ----
     st.markdown("---")
     st.caption("💬 Ask a follow-up question about this recommendation")
     
