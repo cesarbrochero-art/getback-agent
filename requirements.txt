@@ -1,4 +1,0 @@
-streamlit
-google-cloud-aiplatform
-google-auth
-requests
