@@ -79,7 +79,7 @@ def render_chart(chart_data):
         fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode="markers", marker=dict(color="#2E75B6", size=10)))
 
     fig.update_layout(
-        title=title,
+        title=dict(text=title, font=dict(size=16)),
         xaxis_title=x_label,
         yaxis_title=y_label,
         barmode="group",
@@ -140,6 +140,8 @@ def call_agent(prompt, session_id):
             except:
                 continue
 
+    # Debug
+    st.session_state["last_raw_response"] = full_text
     return full_text
 
 # ---- UI ----
@@ -215,6 +217,11 @@ if submitted:
 if st.session_state.recommendation_done:
     st.markdown("---")
     st.subheader("Treatment Recommendation")
+
+    # Debug
+    if st.session_state.get("last_raw_response"):
+        with st.expander("Debug: Raw response"):
+            st.text(st.session_state["last_raw_response"][:2000])
     
     for message in st.session_state.messages:
         if message["role"] == "assistant":
