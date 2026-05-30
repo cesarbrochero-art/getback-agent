@@ -8,6 +8,7 @@ import google.oauth2.service_account
 import json
 import plotly.graph_objects as go
 import re
+import time
 
 # ---- CONFIGURACIÓN ----
 PROJECT_ID = "getback-dev-496214"
@@ -88,7 +89,7 @@ def render_chart(chart_data):
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, key=f"chart_{int(time.time()*1000)}")
 
 # ---- FUNCIÓN PARA LLAMAR AL AGENTE ----
 def call_agent(prompt, session_id):
