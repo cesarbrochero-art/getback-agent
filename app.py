@@ -31,14 +31,16 @@ def extract_chart_data(text):
     match = re.search(pattern, text, re.DOTALL)
     if match:
         try:
-            # Limpiar backticks de markdown
             raw_json = match.group(1)
             raw_json = re.sub(r'```json|```', '', raw_json).strip()
             chart_data = json.loads(raw_json)
             clean_text = text[:text.find('CHART_DATA_START')].strip()
             return clean_text, chart_data
-        except:
+        except Exception as e:
+            st.session_state["chart_error"] = str(e)
             return text, None
+    else:
+        st.session_state["chart_error"] = f"Pattern not found. Text length: {len(text)}. Contains CHART_DATA_START: {'CHART_DATA_START' in text}"
     return text, None
 
 # ---- FUNCIÓN PARA RENDERIZAR GRÁFICO ----
@@ -223,6 +225,8 @@ if st.session_state.recommendation_done:
     if st.session_state.get("last_raw_response"):
         with st.expander("Debug: Raw response"):
             st.text(st.session_state["last_raw_response"][:2000])
+            if st.session_state.get("chart_error"):
+                st.error(f"Chart error: {st.session_state['chart_error']}")
 
     for message in st.session_state.messages:
         if message["role"] == "assistant":
