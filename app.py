@@ -84,13 +84,15 @@ def render_chart(chart_data):
         fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode="markers", marker=dict(color="#2E75B6", size=10)))
 
     fig.update_layout(
-        title=dict(text=title, font=dict(size=16)),
+        title=dict(text=title, font=dict(size=16, color="#1F4E79")),
         xaxis_title=x_label,
         yaxis_title=y_label,
+        xaxis=dict(tickfont=dict(color="#1A1A1A"), titlefont=dict(color="#1A1A1A")),
+        yaxis=dict(tickfont=dict(color="#1A1A1A"), titlefont=dict(color="#1A1A1A")),
         barmode="group",
         plot_bgcolor="white",
         paper_bgcolor="white",
-        font=dict(family="Arial", size=13),
+        font=dict(family="Arial", size=13, color="#1A1A1A"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
 
