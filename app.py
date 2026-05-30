@@ -31,7 +31,10 @@ def extract_chart_data(text):
     match = re.search(pattern, text, re.DOTALL)
     if match:
         try:
-            chart_data = json.loads(match.group(1))
+            # Limpiar backticks de markdown
+            raw_json = match.group(1)
+            raw_json = re.sub(r'```json|```', '', raw_json).strip()
+            chart_data = json.loads(raw_json)
             clean_text = text[:text.find('CHART_DATA_START')].strip()
             return clean_text, chart_data
         except:
@@ -140,7 +143,6 @@ def call_agent(prompt, session_id):
             except:
                 continue
 
-    # Debug
     st.session_state["last_raw_response"] = full_text
     return full_text
 
@@ -218,11 +220,10 @@ if st.session_state.recommendation_done:
     st.markdown("---")
     st.subheader("Treatment Recommendation")
 
-    # Debug
     if st.session_state.get("last_raw_response"):
         with st.expander("Debug: Raw response"):
             st.text(st.session_state["last_raw_response"][:2000])
-    
+
     for message in st.session_state.messages:
         if message["role"] == "assistant":
             with st.chat_message("assistant", avatar="🏥"):
