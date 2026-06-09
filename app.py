@@ -89,7 +89,28 @@ div[data-testid="stForm"] {
   border-radius: 8px !important;
   font-size: 14px !important;
   color: #1A1D23 !important;
+  -webkit-text-fill-color: #1A1D23 !important;
   background: #fff !important;
+  background-color: #fff !important;
+}
+
+.stNumberInput > div > div {
+  background: #fff !important;
+  background-color: #fff !important;
+}
+
+.stSelectbox > div > div > div,
+.stSelectbox svg {
+  color: #1A1D23 !important;
+  -webkit-text-fill-color: #1A1D23 !important;
+  background: #fff !important;
+}
+
+input[type="number"] {
+  color: #1A1D23 !important;
+  -webkit-text-fill-color: #1A1D23 !important;
+  background: #fff !important;
+  background-color: #fff !important;
 }
 
 .stRadio > div {
@@ -108,6 +129,7 @@ div[data-testid="stForm"] {
 }
 .stRadio > div > label * {
   color: #374151 !important;
+  -webkit-text-fill-color: #374151 !important;
 }
 .stRadio > div > label[data-selected="true"] {
   background: #EBF3FB !important;
@@ -117,12 +139,14 @@ div[data-testid="stForm"] {
 }
 .stRadio > div > label[data-selected="true"] * {
   color: #185FA5 !important;
+  -webkit-text-fill-color: #185FA5 !important;
 }
 
 .stFormSubmitButton > button,
 button[kind="primary"] {
   background: #185FA5 !important;
   color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
   border: none !important;
   border-radius: 8px !important;
   font-size: 15px !important;
@@ -158,6 +182,7 @@ button[kind="primary"]:hover {
   font-size: 22px !important;
   font-weight: 600 !important;
   color: #185FA5 !important;
+  -webkit-text-fill-color: #185FA5 !important;
 }
 [data-testid="stMetricDelta"] { font-size: 11px !important; }
 
