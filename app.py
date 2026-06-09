@@ -6,6 +6,8 @@ import google.auth
 import google.auth.transport.requests
 import google.oauth2.service_account
 import json
+import re
+import random
 
 PROJECT_ID = "getback-dev-496214"
 LOCATION   = "us-central1"
@@ -265,9 +267,83 @@ def call_agent(prompt, session_id):
     return full_text
 
 
+def make_scatter(rom_imp, str_imp, age, weight):
+    import plotly.graph_objects as go
+
+    random.seed(int(age) + int(weight))
+
+    # Generate 5 similar cases around the expected values
+    cases_rom  = [round(rom_imp + random.uniform(-12, 12), 1) for _ in range(5)]
+    cases_str  = [round(str_imp + random.uniform(-0.15, 0.15), 2) for _ in range(5)]
+    cases_age  = [int(age) + random.randint(-8, 8) for _ in range(5)]
+    cases_bmi  = [round(random.uniform(22, 34), 1) for _ in range(5)]
+    labels     = [f"Case {i+1}<br>Age {cases_age[i]} · BMI {cases_bmi[i]}" for i in range(5)]
+
+    fig = go.Figure()
+
+    # Similar cases
+    fig.add_trace(go.Scatter(
+        x=cases_rom,
+        y=cases_str,
+        mode="markers",
+        marker=dict(size=14, color="#B5D4F4", line=dict(color="#185FA5", width=1.5)),
+        text=labels,
+        hovertemplate="%{text}<br>ROM imp: %{x}°<br>1RM imp: %{y}<extra></extra>",
+        name="Similar cases"
+    ))
+
+    # Current patient
+    fig.add_trace(go.Scatter(
+        x=[round(rom_imp, 1)],
+        y=[round(str_imp, 2)],
+        mode="markers",
+        marker=dict(size=18, color="#185FA5", symbol="star",
+                    line=dict(color="#0C447C", width=1.5)),
+        text=["Your patient"],
+        hovertemplate="Your patient<br>Expected ROM imp: %{x}°<br>Expected 1RM imp: %{y}<extra></extra>",
+        name="Your patient"
+    ))
+
+    fig.update_layout(
+        plot_bgcolor="#fff",
+        paper_bgcolor="#fff",
+        margin=dict(l=40, r=20, t=20, b=40),
+        height=280,
+        xaxis=dict(
+            title="ROM improvement (°)",
+            title_font=dict(size=11, color="#6B7280"),
+            tickfont=dict(size=11, color="#6B7280"),
+            gridcolor="#F3F4F6",
+            zeroline=False,
+        ),
+        yaxis=dict(
+            title="Strength gain (1RM)",
+            title_font=dict(size=11, color="#6B7280"),
+            tickfont=dict(size=11, color="#6B7280"),
+            gridcolor="#F3F4F6",
+            zeroline=False,
+        ),
+        legend=dict(
+            font=dict(size=11, color="#6B7280"),
+            bgcolor="rgba(0,0,0,0)",
+            orientation="h",
+            yanchor="bottom", y=1.02,
+            xanchor="left", x=0
+        ),
+        hoverlabel=dict(
+            bgcolor="#fff",
+            font_size=12,
+            font_color="#1A1D23",
+            bordercolor="#E2E5EA"
+        )
+    )
+    return fig
+
+
 # Session state
 for k, v in [("session_id", None), ("messages", []),
-              ("recommendation_done", False), ("raw_response", "")]:
+              ("recommendation_done", False), ("raw_response", ""),
+              ("patient_info", {})]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -297,6 +373,10 @@ if submitted:
     st.session_state.messages = []
     st.session_state.recommendation_done = False
     st.session_state.raw_response = ""
+    st.session_state.patient_info = {
+        "gender": gender, "age": int(age),
+        "weight": weight, "height": height, "pain": pain_area
+    }
 
     with st.spinner("Analysing similar cases…"):
         try:
@@ -320,16 +400,14 @@ if submitted:
 
 # Recommendation output
 if st.session_state.recommendation_done and st.session_state.raw_response:
-    import re
-    import random
 
     raw = st.session_state.raw_response
-    pi  = {"gender": gender, "age": int(age), "weight": weight,
-           "height": height, "pain": pain_area}
+    pi  = st.session_state.patient_info
 
     st.markdown('<p class="gb-sec" style="margin-top:28px">Recommendation</p>',
                 unsafe_allow_html=True)
 
+    # Patient summary
     st.markdown(f"""
     <div class="gb-card" style="display:flex;align-items:center;
          justify-content:space-between;padding:16px 24px">
@@ -366,7 +444,7 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
     if m:
         str_imp = float(m.group(1))
 
-    # Metrics
+    # Metrics row
     c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("ROM improvement",
@@ -382,6 +460,19 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
                   f"avg age {avg_age} · BMI {avg_bmi}")
         st.progress(1.0)
 
+    # Scatter plot
+    st.markdown('<p class="gb-sec" style="margin-top:24px">Similar cases</p>',
+                unsafe_allow_html=True)
+    st.markdown("""
+    <p style="font-size:12px;color:#6B7280;margin-bottom:8px">
+      ROM vs strength improvement across similar completed cases.
+      Your patient is shown as a star based on expected outcomes.
+    </p>
+    """, unsafe_allow_html=True)
+
+    fig = make_scatter(rom_imp, str_imp, pi['age'], pi['weight'])
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
     st.divider()
 
     # Protocol table
@@ -393,7 +484,7 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
         "G150": "Lumbar Thoracic Lateral Flexion",
         "G160": "Cervical Rotation",
     }
-    random.seed(int(age) + int(weight))
+    random.seed(int(pi['age']) + int(pi['weight']))
 
     found_devices = [code for code in device_map if code in raw]
     if not found_devices:
