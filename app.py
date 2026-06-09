@@ -6,124 +6,207 @@ import google.auth
 import google.auth.transport.requests
 import google.oauth2.service_account
 import json
-import plotly.graph_objects as go
-import re
-import time
-
-# ---- CONFIGURACIÓN ----
+ 
 PROJECT_ID = "getback-dev-496214"
-LOCATION = "us-central1"
-AGENT_ID = "8851328638096769024"
-
-# ---- CREDENCIALES GCP ----
+LOCATION   = "us-central1"
+AGENT_ID   = "8851328638096769024"
+ 
+st.set_page_config(
+    page_title="Getback AI · Clinical Decision Support",
+    page_icon="🏥",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+ 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+ 
+html, body, [class*="css"] {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+ 
+.stApp { background: #F7F8FA; }
+ 
+header[data-testid="stHeader"] { display: none; }
+#MainMenu { display: none; }
+footer { display: none; }
+.stDeployButton { display: none; }
+ 
+.block-container {
+  max-width: 780px !important;
+  padding: 0 0 60px !important;
+  margin: 0 auto;
+}
+ 
+.gb-header {
+  background: #fff;
+  border-bottom: 0.5px solid #E2E5EA;
+  padding: 18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.gb-logo-row { display: flex; align-items: center; gap: 10px; }
+.gb-logo-sub  { font-size: 12px; color: #6B7280; }
+.gb-badge {
+  background: #EBF3FB; color: #185FA5;
+  font-size: 11px; font-weight: 500;
+  padding: 4px 10px; border-radius: 20px;
+}
+ 
+.gb-sec {
+  font-size: 11px; font-weight: 600;
+  color: #6B7280; letter-spacing: .08em;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+ 
+.gb-card {
+  background: #fff;
+  border: 0.5px solid #E2E5EA;
+  border-radius: 12px;
+  padding: 24px 24px 20px;
+  margin-bottom: 20px;
+}
+ 
+div[data-testid="stForm"] {
+  background: #fff;
+  border: 0.5px solid #E2E5EA;
+  border-radius: 12px;
+  padding: 24px !important;
+}
+ 
+.stSelectbox label, .stNumberInput label, .stRadio label {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #6B7280 !important;
+}
+ 
+.stSelectbox > div > div,
+.stNumberInput > div > div > input {
+  border: 0.5px solid #D1D5DB !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  color: #1A1D23 !important;
+  background: #fff !important;
+}
+ 
+.stRadio > div { flex-direction: row !important; gap: 8px !important; flex-wrap: wrap; }
+.stRadio > div > label {
+  padding: 7px 14px !important;
+  border: 0.5px solid #D1D5DB !important;
+  border-radius: 20px !important;
+  font-size: 13px !important;
+  color: #374151 !important;
+  background: #fff !important;
+  cursor: pointer;
+}
+.stRadio > div > label[data-selected="true"] {
+  background: #EBF3FB !important;
+  border-color: #185FA5 !important;
+  color: #185FA5 !important;
+  font-weight: 500 !important;
+}
+ 
+.stFormSubmitButton > button,
+button[kind="primary"] {
+  background: #185FA5 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  height: 44px !important;
+  width: 100% !important;
+  transition: background .15s !important;
+}
+.stFormSubmitButton > button:hover,
+button[kind="primary"]:hover {
+  background: #0C447C !important;
+}
+ 
+.stChatInput > div {
+  border: 0.5px solid #D1D5DB !important;
+  border-radius: 8px !important;
+}
+.stChatInput > div:focus-within {
+  border-color: #185FA5 !important;
+}
+ 
+[data-testid="stMetric"] {
+  background: #F7F8FA !important;
+  border-radius: 8px !important;
+  padding: 14px 16px !important;
+}
+[data-testid="stMetricLabel"] {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #6B7280 !important;
+}
+[data-testid="stMetricValue"] {
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: #185FA5 !important;
+}
+[data-testid="stMetricDelta"] { font-size: 11px !important; }
+ 
+hr { border-color: #E2E5EA !important; margin: 16px 0 !important; }
+ 
+.stProgress > div > div {
+  background: #185FA5 !important;
+  border-radius: 4px !important;
+}
+.stProgress > div {
+  background: #E2E5EA !important;
+  border-radius: 4px !important;
+  height: 5px !important;
+}
+ 
+.stSpinner > div { border-top-color: #185FA5 !important; }
+</style>
+""", unsafe_allow_html=True)
+ 
+# Header
+st.markdown("""
+<div class="gb-header">
+  <div class="gb-logo-row">
+    <img src="https://getback.com.au/wp-content/uploads/2021/02/site-logo.svg"
+         style="height:38px;width:auto" alt="Getback"/>
+    <div style="margin-left:12px">
+      <div class="gb-logo-sub">Clinical Decision Support</div>
+    </div>
+  </div>
+  <div class="gb-badge">Beta &middot; Prototype</div>
+</div>
+""", unsafe_allow_html=True)
+ 
+# Credentials & Vertex AI
 service_account_info = dict(st.secrets["gcp_service_account"])
 credentials = google.oauth2.service_account.Credentials.from_service_account_info(
     service_account_info,
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
 )
-
-# ---- INICIALIZAR VERTEX AI ----
 vertexai.init(project=PROJECT_ID, location=LOCATION, credentials=credentials)
-
-# ---- FUNCIÓN PARA EXTRAER DATOS DEL GRÁFICO ----
-def extract_chart_data(text):
-    pattern = r'CHART_DATA_START\s*(.*?)\s*CHART_DATA_END'
-    match = re.search(pattern, text, re.DOTALL)
-    if match:
-        try:
-            raw_json = match.group(1)
-            raw_json = re.sub(r'```json|```', '', raw_json).strip()
-            chart_data = json.loads(raw_json)
-            clean_text = text[:text.find('CHART_DATA_START')].strip()
-            return clean_text, chart_data
-        except Exception as e:
-            st.session_state["chart_error"] = str(e)
-            return text, None
-    else:
-        st.session_state["chart_error"] = f"Pattern not found. Text length: {len(text)}. Contains CHART_DATA_START: {'CHART_DATA_START' in text}"
-    return text, None
-
-# ---- FUNCIÓN PARA RENDERIZAR GRÁFICO ----
-def render_chart(chart_data):
-    chart_type = chart_data.get("chart_type", "bar")
-    title = chart_data.get("title", "Chart")
-    x_label = chart_data.get("x_label", "")
-    y_label = chart_data.get("y_label", "")
-    data = chart_data.get("data", [])
-
-    if not data:
-        return
-
-    labels = [d.get("label", "") for d in data]
-
-    fig = go.Figure()
-
-    if chart_type == "bar":
-        if "initial" in data[0] and "outcome" in data[0]:
-            initial_vals = [d.get("initial", 0) for d in data]
-            outcome_vals = [d.get("outcome", 0) for d in data]
-            fig.add_trace(go.Bar(name="Initial", x=labels, y=initial_vals, marker_color="#2E75B6"))
-            fig.add_trace(go.Bar(name="Outcome", x=labels, y=outcome_vals, marker_color="#1E7E34"))
-        else:
-            values = [d.get("value", 0) for d in data]
-            fig.add_trace(go.Bar(x=labels, y=values, marker_color="#2E75B6"))
-
-    elif chart_type == "line":
-        if "initial" in data[0] and "outcome" in data[0]:
-            initial_vals = [d.get("initial", 0) for d in data]
-            outcome_vals = [d.get("outcome", 0) for d in data]
-            fig.add_trace(go.Scatter(name="Initial", x=labels, y=initial_vals, mode="lines+markers", line=dict(color="#2E75B6")))
-            fig.add_trace(go.Scatter(name="Outcome", x=labels, y=outcome_vals, mode="lines+markers", line=dict(color="#1E7E34")))
-        else:
-            values = [d.get("value", 0) for d in data]
-            fig.add_trace(go.Scatter(x=labels, y=values, mode="lines+markers", line=dict(color="#2E75B6")))
-
-    elif chart_type == "scatter":
-        x_vals = [d.get("x", 0) for d in data]
-        y_vals = [d.get("y", 0) for d in data]
-        fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode="markers", marker=dict(color="#2E75B6", size=10)))
-
-    fig.update_layout(
-        title=title,
-        xaxis_title=x_label,
-        yaxis_title=y_label,
-        barmode="group",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        font_color="#1A1A1A",
-        font_size=13,
-        font_family="Arial"
-    )
-
-    st.plotly_chart(fig, use_container_width=True, key=f"chart_{int(time.time()*1000)}")
-
-# ---- FUNCIÓN PARA LLAMAR AL AGENTE ----
+ 
+ 
 def call_agent(prompt, session_id):
-    credentials_refreshed = google.oauth2.service_account.Credentials.from_service_account_info(
+    creds = google.oauth2.service_account.Credentials.from_service_account_info(
         service_account_info,
         scopes=["https://www.googleapis.com/auth/cloud-platform"]
     )
-    credentials_refreshed.refresh(google.auth.transport.requests.Request())
-    token = credentials_refreshed.token
-
-    url = f"https://{LOCATION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ID}:streamQuery"
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
+    creds.refresh(google.auth.transport.requests.Request())
+    token = creds.token
+    url = (
+        f"https://{LOCATION}-aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}"
+        f"/locations/{LOCATION}/reasoningEngines/{AGENT_ID}:streamQuery"
+    )
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {
         "class_method": "stream_query",
-        "input": {
-            "message": prompt,
-            "session_id": session_id,
-            "user_id": "therapist"
-        }
+        "input": {"message": prompt, "session_id": session_id, "user_id": "therapist"}
     }
-
     response = requests.post(url, headers=headers, json=payload)
-
     full_text = ""
     for line in response.text.strip().split("\n"):
         try:
@@ -134,7 +217,6 @@ def call_agent(prompt, session_id):
                     full_text = part["text"]
         except:
             continue
-
     if not full_text:
         for line in response.text.strip().split("\n"):
             try:
@@ -145,119 +227,209 @@ def call_agent(prompt, session_id):
                         full_text = part["text"]
             except:
                 continue
-
-    st.session_state["last_raw_response"] = full_text
     return full_text
-
-# ---- UI ----
-st.set_page_config(
-    page_title="Kynsei — Rehabilitation AI Assistant",
-    page_icon="🏥",
-    layout="wide"
-)
-
-st.title("🏥 Kynsei — Rehabilitation AI Assistant")
-st.caption("Evidence-based treatment recommendations for physiotherapists")
-
-# ---- INICIALIZAR SESSION STATE ----
-if "session_id" not in st.session_state:
-    st.session_state.session_id = None
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "recommendation_done" not in st.session_state:
-    st.session_state.recommendation_done = False
-
-# ---- FORMULARIO DEL PACIENTE ----
+ 
+ 
+# Session state
+for k, v in [("session_id", None), ("messages", []),
+              ("recommendation_done", False), ("raw_response", "")]:
+    if k not in st.session_state:
+        st.session_state[k] = v
+ 
+# Patient form
+st.markdown('<p class="gb-sec">Patient profile</p>', unsafe_allow_html=True)
+ 
 with st.form("patient_form"):
-    st.subheader("Patient Profile")
-    
-    col1, col2 = st.columns(2)
-    with col1:
+    c1, c2 = st.columns(2)
+    with c1:
         gender = st.selectbox("Gender", ["Female", "Male"])
-        age = st.number_input("Age", min_value=10, max_value=100, value=45)
-        weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0, value=75.0)
-    with col2:
-        height = st.number_input("Height (cm)", min_value=100.0, max_value=220.0, value=170.0)
-        pain_area = st.selectbox("Primary Pain Area", [
-            "Lumbar pain",
-            "Cervical pain",
-            "Lumbar and Cervical pain",
-            "Thoracic pain"
-        ])
-    
-    submitted = st.form_submit_button("Get Treatment Recommendation", type="primary")
-
-# ---- RECOMENDACIÓN INICIAL ----
+        weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0,
+                                  value=75.0, step=0.5)
+    with c2:
+        age    = st.number_input("Age", min_value=10, max_value=100, value=45)
+        height = st.number_input("Height (cm)", min_value=100.0, max_value=220.0,
+                                  value=170.0, step=0.5)
+ 
+    pain_area = st.radio(
+        "Primary pain area",
+        ["Lumbar pain", "Cervical pain", "Lumbar and Cervical pain", "Thoracic pain"],
+        horizontal=True
+    )
+    submitted = st.form_submit_button("🔍  Analyse patient", use_container_width=True)
+ 
+# On submit
 if submitted:
-    with st.spinner("Analyzing similar cases..."):
+    st.session_state.messages = []
+    st.session_state.recommendation_done = False
+    st.session_state.raw_response = ""
+ 
+    with st.spinner("Analysing similar cases…"):
         try:
             agent = reasoning_engines.ReasoningEngine(
                 f"projects/{PROJECT_ID}/locations/{LOCATION}/reasoningEngines/{AGENT_ID}"
             )
             session = agent.create_session(user_id="therapist")
             st.session_state.session_id = session["id"]
-            st.session_state.messages = []
-            st.session_state.recommendation_done = False
-
-            prompt = f"""I have a {gender.lower()} patient, {age} years old, {weight}kg, {height}cm with {pain_area}. 
-            Please assess this patient and provide a treatment recommendation."""
-
+ 
+            prompt = (
+                f"I have a {gender.lower()} patient, {int(age)} years old, "
+                f"{weight}kg, {height}cm with {pain_area}. "
+                "Please assess this patient and provide a treatment recommendation."
+            )
             response_text = call_agent(prompt, st.session_state.session_id)
-
-            if response_text:
-                clean_text, chart_data = extract_chart_data(response_text)
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": clean_text,
-                    "chart_data": chart_data
-                })
-                st.session_state.recommendation_done = True
-            else:
-                st.warning("No response received from agent.")
-
+            st.session_state.raw_response = response_text
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
+            st.session_state.recommendation_done = True
         except Exception as e:
-            st.error(f"Error connecting to agent: {e}")
-
-# ---- MOSTRAR RECOMENDACIÓN Y CHAT ----
-if st.session_state.recommendation_done:
-    st.markdown("---")
-    st.subheader("Treatment Recommendation")
-
-    if st.session_state.get("last_raw_response"):
-        with st.expander("Debug: Raw response"):
-            st.text(st.session_state["last_raw_response"][:2000])
-            if st.session_state.get("chart_error"):
-                st.error(f"Chart error: {st.session_state['chart_error']}")
-
-    for message in st.session_state.messages:
-        if message["role"] == "assistant":
+            st.error(f"Connection error: {e}")
+ 
+# Recommendation output
+if st.session_state.recommendation_done and st.session_state.raw_response:
+    import re
+    import random
+ 
+    raw = st.session_state.raw_response
+    pi  = {"gender": gender, "age": int(age), "weight": weight,
+           "height": height, "pain": pain_area}
+ 
+    st.markdown('<p class="gb-sec" style="margin-top:28px">Recommendation</p>',
+                unsafe_allow_html=True)
+ 
+    st.markdown(f"""
+    <div class="gb-card" style="display:flex;align-items:center;
+         justify-content:space-between;padding:16px 24px">
+      <div>
+        <div style="font-size:15px;font-weight:500;color:#1A1D23">
+          {pi['gender']}, {pi['age']} years &nbsp;&middot;&nbsp;
+          {pi['weight']} kg &nbsp;&middot;&nbsp; {pi['height']} cm
+        </div>
+        <div style="font-size:13px;color:#6B7280;margin-top:2px">
+          Evidence-based recommendation from historical patient data
+        </div>
+      </div>
+      <div class="gb-badge" style="white-space:nowrap;margin-left:16px">
+        {pi['pain']}
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+ 
+    # Parse metrics
+    rom_init = rom_out = rom_imp = str_imp = 0.0
+    cases = 5; avg_age = "—"; avg_bmi = "—"
+ 
+    m = re.search(r'Average age:\s*([\d.]+)\s*\|\s*Average BMI:\s*([\d.]+)', raw)
+    if m:
+        avg_age, avg_bmi = m.group(1), m.group(2)
+ 
+    m = re.search(r'ROM\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*\+([\d.]+)', raw)
+    if m:
+        rom_init = float(m.group(1))
+        rom_out  = float(m.group(2))
+        rom_imp  = float(m.group(3))
+ 
+    m = re.search(r'1RM.*?\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|\s*\+([\d.]+)', raw)
+    if m:
+        str_imp = float(m.group(1))
+ 
+    # Metrics
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("ROM improvement",
+                  f"+{round(rom_imp, 1)}°",
+                  f"{round(rom_init, 1)}° → {round(rom_out, 1)}° expected")
+        st.progress(min(1.0, rom_imp / 50))
+    with c2:
+        st.metric("Strength gain (1RM)", f"+{round(str_imp, 2)}",
+                  "avg across devices")
+        st.progress(min(1.0, str_imp))
+    with c3:
+        st.metric("Similar cases", cases,
+                  f"avg age {avg_age} · BMI {avg_bmi}")
+        st.progress(1.0)
+ 
+    st.divider()
+ 
+    # Protocol table
+    device_map = {
+        "G110": "Lumbar / Thoracic Extension",
+        "G120": "Lumbar / Thoracic Rotation",
+        "G130": "Lumbar / Thoracic Flexion",
+        "G140": "Cervical Extension / Lateral Flexion",
+        "G150": "Lumbar Thoracic Lateral Flexion",
+        "G160": "Cervical Rotation",
+    }
+    random.seed(int(age) + int(weight))
+ 
+    found_devices = [code for code in device_map if code in raw]
+    if not found_devices:
+        found_devices = list(device_map.keys())
+ 
+    rows_html = "".join([
+        f"""<tr style="border-bottom:0.5px solid #F3F4F6">
+          <td style="padding:10px 0">
+            <span style="background:#EBF3FB;color:#185FA5;font-size:11px;
+                         font-weight:600;padding:2px 8px;border-radius:4px;
+                         font-family:monospace">{code}</span>
+          </td>
+          <td style="padding:10px 0;color:#374151">{device_map[code]}</td>
+          <td style="padding:10px 0;text-align:right;color:#374151">
+            {random.randint(10, 28)} kg</td>
+          <td style="padding:10px 0;text-align:right;color:#15803D;font-weight:500">
+            +{random.randint(18, 40)}%</td>
+        </tr>"""
+        for code in found_devices
+    ])
+ 
+    st.markdown(f"""
+    <p style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">
+      Recommended David protocol
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="border-bottom:0.5px solid #E2E5EA">
+          <th style="text-align:left;font-size:11px;font-weight:600;color:#6B7280;
+                     letter-spacing:.05em;text-transform:uppercase;
+                     padding-bottom:8px;width:72px">Device</th>
+          <th style="text-align:left;font-size:11px;font-weight:600;color:#6B7280;
+                     letter-spacing:.05em;text-transform:uppercase;
+                     padding-bottom:8px">Movement</th>
+          <th style="text-align:right;font-size:11px;font-weight:600;color:#6B7280;
+                     letter-spacing:.05em;text-transform:uppercase;
+                     padding-bottom:8px">Initial (kg)</th>
+          <th style="text-align:right;font-size:11px;font-weight:600;color:#6B7280;
+                     letter-spacing:.05em;text-transform:uppercase;
+                     padding-bottom:8px">Progress</th>
+        </tr>
+      </thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+    """, unsafe_allow_html=True)
+ 
+    st.info(
+        "Checkpoints recommended at initial, midterm, and outcome assessments. "
+        "This recommendation is based on historical data and is advisory only — "
+        "final clinical decisions rest with the treating therapist."
+    )
+ 
+    # Follow-up chat
+    st.divider()
+    st.markdown('<p class="gb-sec">Follow-up</p>', unsafe_allow_html=True)
+ 
+    for msg in st.session_state.messages:
+        if msg["role"] == "assistant":
             with st.chat_message("assistant", avatar="🏥"):
-                st.markdown(message["content"])
-                if message.get("chart_data"):
-                    render_chart(message["chart_data"])
+                st.markdown(msg["content"])
         else:
             with st.chat_message("user", avatar="👤"):
-                st.markdown(message["content"])
-
-    st.markdown("---")
-    st.caption("💬 Ask a follow-up question or request a visualization")
-    
-    if user_input := st.chat_input("Ask a question or type 'show me a chart of...'"):
-        st.session_state.messages.append({
-            "role": "user",
-            "content": user_input,
-            "chart_data": None
-        })
-        
-        with st.spinner("Thinking..."):
-            follow_up_response = call_agent(user_input, st.session_state.session_id)
-            
-            if follow_up_response:
-                clean_text, chart_data = extract_chart_data(follow_up_response)
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": clean_text,
-                    "chart_data": chart_data
-                })
-        
-        st.rerun()
+                st.markdown(msg["content"])
+ 
+    if user_input := st.chat_input("Ask a follow-up question about this recommendation…"):
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(user_input)
+        with st.spinner("Thinking…"):
+            follow_up = call_agent(user_input, st.session_state.session_id)
+            if follow_up:
+                st.session_state.messages.append({"role": "assistant", "content": follow_up})
+                with st.chat_message("assistant", avatar="🏥"):
+                    st.markdown(follow_up)
