@@ -6,39 +6,39 @@ import google.auth
 import google.auth.transport.requests
 import google.oauth2.service_account
 import json
- 
+
 PROJECT_ID = "getback-dev-496214"
 LOCATION   = "us-central1"
 AGENT_ID   = "8851328638096769024"
- 
+
 st.set_page_config(
     page_title="Getback AI · Clinical Decision Support",
     page_icon="🏥",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
- 
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
- 
+
 html, body, [class*="css"] {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
- 
+
 .stApp { background: #F7F8FA; }
- 
+
 header[data-testid="stHeader"] { display: none; }
 #MainMenu { display: none; }
 footer { display: none; }
 .stDeployButton { display: none; }
- 
+
 .block-container {
   max-width: 780px !important;
   padding: 0 0 60px !important;
   margin: 0 auto;
 }
- 
+
 .gb-header {
   background: #fff;
   border-bottom: 0.5px solid #E2E5EA;
@@ -55,13 +55,13 @@ footer { display: none; }
   font-size: 11px; font-weight: 500;
   padding: 4px 10px; border-radius: 20px;
 }
- 
+
 .gb-sec {
   font-size: 11px; font-weight: 600;
   color: #6B7280; letter-spacing: .08em;
   text-transform: uppercase; margin-bottom: 4px;
 }
- 
+
 .gb-card {
   background: #fff;
   border: 0.5px solid #E2E5EA;
@@ -69,20 +69,20 @@ footer { display: none; }
   padding: 24px 24px 20px;
   margin-bottom: 20px;
 }
- 
+
 div[data-testid="stForm"] {
   background: #fff;
   border: 0.5px solid #E2E5EA;
   border-radius: 12px;
   padding: 24px !important;
 }
- 
+
 .stSelectbox label, .stNumberInput label, .stRadio label {
   font-size: 12px !important;
   font-weight: 500 !important;
   color: #6B7280 !important;
 }
- 
+
 .stSelectbox > div > div,
 .stNumberInput > div > div > input {
   border: 0.5px solid #D1D5DB !important;
@@ -91,8 +91,12 @@ div[data-testid="stForm"] {
   color: #1A1D23 !important;
   background: #fff !important;
 }
- 
-.stRadio > div { flex-direction: row !important; gap: 8px !important; flex-wrap: wrap; }
+
+.stRadio > div {
+  flex-direction: row !important;
+  gap: 8px !important;
+  flex-wrap: wrap;
+}
 .stRadio > div > label {
   padding: 7px 14px !important;
   border: 0.5px solid #D1D5DB !important;
@@ -102,13 +106,19 @@ div[data-testid="stForm"] {
   background: #fff !important;
   cursor: pointer;
 }
+.stRadio > div > label * {
+  color: #374151 !important;
+}
 .stRadio > div > label[data-selected="true"] {
   background: #EBF3FB !important;
   border-color: #185FA5 !important;
   color: #185FA5 !important;
   font-weight: 500 !important;
 }
- 
+.stRadio > div > label[data-selected="true"] * {
+  color: #185FA5 !important;
+}
+
 .stFormSubmitButton > button,
 button[kind="primary"] {
   background: #185FA5 !important;
@@ -125,7 +135,7 @@ button[kind="primary"] {
 button[kind="primary"]:hover {
   background: #0C447C !important;
 }
- 
+
 .stChatInput > div {
   border: 0.5px solid #D1D5DB !important;
   border-radius: 8px !important;
@@ -133,7 +143,7 @@ button[kind="primary"]:hover {
 .stChatInput > div:focus-within {
   border-color: #185FA5 !important;
 }
- 
+
 [data-testid="stMetric"] {
   background: #F7F8FA !important;
   border-radius: 8px !important;
@@ -150,9 +160,9 @@ button[kind="primary"]:hover {
   color: #185FA5 !important;
 }
 [data-testid="stMetricDelta"] { font-size: 11px !important; }
- 
+
 hr { border-color: #E2E5EA !important; margin: 16px 0 !important; }
- 
+
 .stProgress > div > div {
   background: #185FA5 !important;
   border-radius: 4px !important;
@@ -162,11 +172,11 @@ hr { border-color: #E2E5EA !important; margin: 16px 0 !important; }
   border-radius: 4px !important;
   height: 5px !important;
 }
- 
+
 .stSpinner > div { border-top-color: #185FA5 !important; }
 </style>
 """, unsafe_allow_html=True)
- 
+
 # Header
 st.markdown("""
 <div class="gb-header">
@@ -180,7 +190,7 @@ st.markdown("""
   <div class="gb-badge">Beta &middot; Prototype</div>
 </div>
 """, unsafe_allow_html=True)
- 
+
 # Credentials & Vertex AI
 service_account_info = dict(st.secrets["gcp_service_account"])
 credentials = google.oauth2.service_account.Credentials.from_service_account_info(
@@ -188,8 +198,8 @@ credentials = google.oauth2.service_account.Credentials.from_service_account_inf
     scopes=["https://www.googleapis.com/auth/cloud-platform"]
 )
 vertexai.init(project=PROJECT_ID, location=LOCATION, credentials=credentials)
- 
- 
+
+
 def call_agent(prompt, session_id):
     creds = google.oauth2.service_account.Credentials.from_service_account_info(
         service_account_info,
@@ -228,17 +238,17 @@ def call_agent(prompt, session_id):
             except:
                 continue
     return full_text
- 
- 
+
+
 # Session state
 for k, v in [("session_id", None), ("messages", []),
               ("recommendation_done", False), ("raw_response", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
- 
+
 # Patient form
 st.markdown('<p class="gb-sec">Patient profile</p>', unsafe_allow_html=True)
- 
+
 with st.form("patient_form"):
     c1, c2 = st.columns(2)
     with c1:
@@ -249,20 +259,20 @@ with st.form("patient_form"):
         age    = st.number_input("Age", min_value=10, max_value=100, value=45)
         height = st.number_input("Height (cm)", min_value=100.0, max_value=220.0,
                                   value=170.0, step=0.5)
- 
+
     pain_area = st.radio(
         "Primary pain area",
         ["Lumbar pain", "Cervical pain", "Lumbar and Cervical pain", "Thoracic pain"],
         horizontal=True
     )
     submitted = st.form_submit_button("🔍  Analyse patient", use_container_width=True)
- 
+
 # On submit
 if submitted:
     st.session_state.messages = []
     st.session_state.recommendation_done = False
     st.session_state.raw_response = ""
- 
+
     with st.spinner("Analysing similar cases…"):
         try:
             agent = reasoning_engines.ReasoningEngine(
@@ -270,7 +280,7 @@ if submitted:
             )
             session = agent.create_session(user_id="therapist")
             st.session_state.session_id = session["id"]
- 
+
             prompt = (
                 f"I have a {gender.lower()} patient, {int(age)} years old, "
                 f"{weight}kg, {height}cm with {pain_area}. "
@@ -282,19 +292,19 @@ if submitted:
             st.session_state.recommendation_done = True
         except Exception as e:
             st.error(f"Connection error: {e}")
- 
+
 # Recommendation output
 if st.session_state.recommendation_done and st.session_state.raw_response:
     import re
     import random
- 
+
     raw = st.session_state.raw_response
     pi  = {"gender": gender, "age": int(age), "weight": weight,
            "height": height, "pain": pain_area}
- 
+
     st.markdown('<p class="gb-sec" style="margin-top:28px">Recommendation</p>',
                 unsafe_allow_html=True)
- 
+
     st.markdown(f"""
     <div class="gb-card" style="display:flex;align-items:center;
          justify-content:space-between;padding:16px 24px">
@@ -312,25 +322,25 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
       </div>
     </div>
     """, unsafe_allow_html=True)
- 
+
     # Parse metrics
     rom_init = rom_out = rom_imp = str_imp = 0.0
     cases = 5; avg_age = "—"; avg_bmi = "—"
- 
+
     m = re.search(r'Average age:\s*([\d.]+)\s*\|\s*Average BMI:\s*([\d.]+)', raw)
     if m:
         avg_age, avg_bmi = m.group(1), m.group(2)
- 
+
     m = re.search(r'ROM\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*\+([\d.]+)', raw)
     if m:
         rom_init = float(m.group(1))
         rom_out  = float(m.group(2))
         rom_imp  = float(m.group(3))
- 
+
     m = re.search(r'1RM.*?\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|\s*\+([\d.]+)', raw)
     if m:
         str_imp = float(m.group(1))
- 
+
     # Metrics
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -346,9 +356,9 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
         st.metric("Similar cases", cases,
                   f"avg age {avg_age} · BMI {avg_bmi}")
         st.progress(1.0)
- 
+
     st.divider()
- 
+
     # Protocol table
     device_map = {
         "G110": "Lumbar / Thoracic Extension",
@@ -359,11 +369,11 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
         "G160": "Cervical Rotation",
     }
     random.seed(int(age) + int(weight))
- 
+
     found_devices = [code for code in device_map if code in raw]
     if not found_devices:
         found_devices = list(device_map.keys())
- 
+
     rows_html = "".join([
         f"""<tr style="border-bottom:0.5px solid #F3F4F6">
           <td style="padding:10px 0">
@@ -379,7 +389,7 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
         </tr>"""
         for code in found_devices
     ])
- 
+
     st.markdown(f"""
     <p style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">
       Recommended David protocol
@@ -404,17 +414,17 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
       <tbody>{rows_html}</tbody>
     </table>
     """, unsafe_allow_html=True)
- 
+
     st.info(
         "Checkpoints recommended at initial, midterm, and outcome assessments. "
         "This recommendation is based on historical data and is advisory only — "
         "final clinical decisions rest with the treating therapist."
     )
- 
+
     # Follow-up chat
     st.divider()
     st.markdown('<p class="gb-sec">Follow-up</p>', unsafe_allow_html=True)
- 
+
     for msg in st.session_state.messages:
         if msg["role"] == "assistant":
             with st.chat_message("assistant", avatar="🏥"):
@@ -422,7 +432,7 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
         else:
             with st.chat_message("user", avatar="👤"):
                 st.markdown(msg["content"])
- 
+
     if user_input := st.chat_input("Ask a follow-up question about this recommendation…"):
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user", avatar="👤"):
