@@ -272,7 +272,6 @@ def make_scatter(rom_imp, str_imp, age, weight):
 
     random.seed(int(age) + int(weight))
 
-    # Generate 5 similar cases around the expected values
     cases_rom  = [round(rom_imp + random.uniform(-12, 12), 1) for _ in range(5)]
     cases_str  = [round(str_imp + random.uniform(-0.15, 0.15), 2) for _ in range(5)]
     cases_age  = [int(age) + random.randint(-8, 8) for _ in range(5)]
@@ -281,10 +280,8 @@ def make_scatter(rom_imp, str_imp, age, weight):
 
     fig = go.Figure()
 
-    # Similar cases
     fig.add_trace(go.Scatter(
-        x=cases_rom,
-        y=cases_str,
+        x=cases_rom, y=cases_str,
         mode="markers",
         marker=dict(size=14, color="#B5D4F4", line=dict(color="#185FA5", width=1.5)),
         text=labels,
@@ -292,10 +289,8 @@ def make_scatter(rom_imp, str_imp, age, weight):
         name="Similar cases"
     ))
 
-    # Current patient
     fig.add_trace(go.Scatter(
-        x=[round(rom_imp, 1)],
-        y=[round(str_imp, 2)],
+        x=[round(rom_imp, 1)], y=[round(str_imp, 2)],
         mode="markers",
         marker=dict(size=18, color="#185FA5", symbol="star",
                     line=dict(color="#0C447C", width=1.5)),
@@ -305,37 +300,16 @@ def make_scatter(rom_imp, str_imp, age, weight):
     ))
 
     fig.update_layout(
-        plot_bgcolor="#fff",
-        paper_bgcolor="#fff",
+        plot_bgcolor="#fff", paper_bgcolor="#fff",
         margin=dict(l=40, r=20, t=20, b=40),
         height=280,
-        xaxis=dict(
-            title="ROM improvement (°)",
-            title_font=dict(size=11, color="#6B7280"),
-            tickfont=dict(size=11, color="#6B7280"),
-            gridcolor="#F3F4F6",
-            zeroline=False,
-        ),
-        yaxis=dict(
-            title="Strength gain (1RM)",
-            title_font=dict(size=11, color="#6B7280"),
-            tickfont=dict(size=11, color="#6B7280"),
-            gridcolor="#F3F4F6",
-            zeroline=False,
-        ),
-        legend=dict(
-            font=dict(size=11, color="#6B7280"),
-            bgcolor="rgba(0,0,0,0)",
-            orientation="h",
-            yanchor="bottom", y=1.02,
-            xanchor="left", x=0
-        ),
-        hoverlabel=dict(
-            bgcolor="#fff",
-            font_size=12,
-            font_color="#1A1D23",
-            bordercolor="#E2E5EA"
-        )
+        xaxis=dict(title="ROM improvement (°)", title_font=dict(size=11, color="#6B7280"),
+                   tickfont=dict(size=11, color="#6B7280"), gridcolor="#F3F4F6", zeroline=False),
+        yaxis=dict(title="Strength gain (1RM)", title_font=dict(size=11, color="#6B7280"),
+                   tickfont=dict(size=11, color="#6B7280"), gridcolor="#F3F4F6", zeroline=False),
+        legend=dict(font=dict(size=11, color="#6B7280"), bgcolor="rgba(0,0,0,0)",
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        hoverlabel=dict(bgcolor="#fff", font_size=12, font_color="#1A1D23", bordercolor="#E2E5EA")
     )
     return fig
 
@@ -407,7 +381,6 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
     st.markdown('<p class="gb-sec" style="margin-top:28px">Recommendation</p>',
                 unsafe_allow_html=True)
 
-    # Patient summary
     st.markdown(f"""
     <div class="gb-card" style="display:flex;align-items:center;
          justify-content:space-between;padding:16px 24px">
@@ -426,25 +399,25 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
     </div>
     """, unsafe_allow_html=True)
 
-    # Parse metrics
+    # Parse metrics — updated regex for new agent format
     rom_init = rom_out = rom_imp = str_imp = 0.0
     cases = 5; avg_age = "—"; avg_bmi = "—"
 
-    m = re.search(r'Average age:\s*([\d.]+)\s*\|\s*Average BMI:\s*([\d.]+)', raw)
+    m = re.search(r'Average age:\s*([\d.]+)\s*\|?\s*Average BMI:\s*([\d.]+)', raw)
     if m:
         avg_age, avg_bmi = m.group(1), m.group(2)
 
-    m = re.search(r'ROM\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*\+([\d.]+)', raw)
+    m = re.search(r'ROM\s*\|?\s*([\d.]+)°?\s*\|?\s*([\d.]+)°?\s*\|?\s*\+([\d.]+)', raw)
     if m:
         rom_init = float(m.group(1))
         rom_out  = float(m.group(2))
         rom_imp  = float(m.group(3))
 
-    m = re.search(r'1RM.*?\|\s*[\d.]+\s*\|\s*[\d.]+\s*\|\s*\+([\d.]+)', raw)
+    m = re.search(r'Strength[^\n]*\|\s*[^\|]*\|\s*[^\|]*\|\s*\+([\d.]+)', raw)
     if m:
         str_imp = float(m.group(1))
 
-    # Metrics row
+    # Metrics
     c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("ROM improvement",
@@ -454,24 +427,24 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
     with c2:
         st.metric("Strength gain (1RM)", f"+{round(str_imp, 2)}",
                   "avg across devices")
-        st.progress(min(1.0, str_imp))
+        st.progress(min(1.0, str_imp / 50))
     with c3:
         st.metric("Similar cases", cases,
                   f"avg age {avg_age} · BMI {avg_bmi}")
         st.progress(1.0)
 
     # Scatter plot
-    st.markdown('<p class="gb-sec" style="margin-top:24px">Similar cases</p>',
-                unsafe_allow_html=True)
-    st.markdown("""
-    <p style="font-size:12px;color:#6B7280;margin-bottom:8px">
-      ROM vs strength improvement across similar completed cases.
-      Your patient is shown as a star based on expected outcomes.
-    </p>
-    """, unsafe_allow_html=True)
-
-    fig = make_scatter(rom_imp, str_imp, pi['age'], pi['weight'])
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    if rom_imp > 0 or str_imp > 0:
+        st.markdown('<p class="gb-sec" style="margin-top:24px">Similar cases</p>',
+                    unsafe_allow_html=True)
+        st.markdown("""
+        <p style="font-size:12px;color:#6B7280;margin-bottom:8px">
+          ROM vs strength improvement across similar completed cases.
+          Your patient is shown as a star based on expected outcomes.
+        </p>
+        """, unsafe_allow_html=True)
+        fig = make_scatter(rom_imp, str_imp, pi['age'], pi['weight'])
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     st.divider()
 
