@@ -267,16 +267,16 @@ def call_agent(prompt, session_id):
     return full_text
 
 
-def make_scatter(rom_imp, str_imp, age, weight):
+def make_scatter(rom_imp, str_imp, age, weight, n_cases=5):
     import plotly.graph_objects as go
 
     random.seed(int(age) + int(weight))
 
-    cases_rom  = [round(rom_imp + random.uniform(-12, 12), 1) for _ in range(5)]
-    cases_str  = [round(str_imp + random.uniform(-0.15, 0.15), 2) for _ in range(5)]
-    cases_age  = [int(age) + random.randint(-8, 8) for _ in range(5)]
-    cases_bmi  = [round(random.uniform(22, 34), 1) for _ in range(5)]
-    labels     = [f"Case {i+1}<br>Age {cases_age[i]} · BMI {cases_bmi[i]}" for i in range(5)]
+    cases_rom  = [round(rom_imp + random.uniform(-12, 12), 1) for _ in range(n_cases)]
+    cases_str  = [round(str_imp + random.uniform(-0.15, 0.15), 2) for _ in range(n_cases)]
+    cases_age  = [int(age) + random.randint(-8, 8) for _ in range(n_cases)]
+    cases_bmi  = [round(random.uniform(22, 34), 1) for _ in range(n_cases)]
+    labels     = [f"Case {i+1}<br>Age {cases_age[i]} · BMI {cases_bmi[i]}" for i in range(n_cases)]
 
     fig = go.Figure()
 
@@ -399,13 +399,18 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
     </div>
     """, unsafe_allow_html=True)
 
-    # Parse metrics — updated regex for new agent format
+    # Parse metrics
     rom_init = rom_out = rom_imp = str_imp = 0.0
     cases = 5; avg_age = "—"; avg_bmi = "—"
 
     m = re.search(r'Average age:\s*([\d.]+)\s*\|?\s*Average BMI:\s*([\d.]+)', raw)
     if m:
         avg_age, avg_bmi = m.group(1), m.group(2)
+
+    # Parse actual number of similar cases from agent response
+    m_cases = re.search(r'Based on (\d+) similar patient', raw)
+    if m_cases:
+        cases = int(m_cases.group(1))
 
     m = re.search(r'ROM\s*\|?\s*([\d.]+)°?\s*\|?\s*([\d.]+)°?\s*\|?\s*\+([\d.]+)', raw)
     if m:
@@ -443,7 +448,7 @@ if st.session_state.recommendation_done and st.session_state.raw_response:
           Your patient is shown as a star based on expected outcomes.
         </p>
         """, unsafe_allow_html=True)
-        fig = make_scatter(rom_imp, str_imp, pi['age'], pi['weight'])
+        fig = make_scatter(rom_imp, str_imp, pi['age'], pi['weight'], n_cases=cases)
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
     st.divider()
