@@ -211,7 +211,8 @@ st.markdown("""
     <img src="https://getback.com.au/wp-content/uploads/2021/02/site-logo.svg"
          style="height:38px;width:auto" alt="Getback"/>
     <div style="margin-left:12px">
-      <div class="gb-logo-sub">Clinical Decision Support</div>
+      <div style="font-size:15px;font-weight:600;color:#1A1D23">Kinsei</div>
+      <div class="gb-logo-sub">Predictive Clinical Algorithm</div>
     </div>
   </div>
   <div class="gb-badge">Beta &middot; Prototype</div>
