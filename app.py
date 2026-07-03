@@ -211,7 +211,7 @@ st.markdown("""
     <img src="https://getback.com.au/wp-content/uploads/2021/02/site-logo.svg"
          style="height:38px;width:auto" alt="Getback"/>
     <div style="margin-left:16px;border-left:1px solid #E2E5EA;padding-left:16px">
-      <svg width="280" viewBox="0 0 340 75" xmlns="http://www.w3.org/2000/svg">
+      <svg width="230" viewBox="0 0 340 75" xmlns="http://www.w3.org/2000/svg">
         <text x="170" y="40" font-family="Georgia, serif" font-size="32" font-weight="400" fill="#185FA5" letter-spacing="5" text-anchor="middle">Kinsei</text>
         <line x1="80" y1="48" x2="260" y2="48" stroke="#185FA5" stroke-width="0.5" opacity="0.3"/>
         <text x="170" y="65" font-family="-apple-system, sans-serif" font-size="12" font-weight="400" fill="#185FA5" letter-spacing="1.5" text-anchor="middle" opacity="0.6">PREDICTIVE CLINICAL ALGORITHM</text>
